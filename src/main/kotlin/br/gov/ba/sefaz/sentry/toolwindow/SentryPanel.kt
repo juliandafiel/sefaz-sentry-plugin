@@ -55,6 +55,7 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
     private val autoCheckbox = JBCheckBox("Auto")
     private var updatingCombos = false
     private var currentCurl: String? = null
+    private var currentBody: String? = null
 
     private val rowModel = DefaultListModel<SentryRow>()
     private val rowList = JBList(rowModel)
@@ -87,6 +88,10 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
                 href == "copy:curl" -> currentCurl?.let {
                     CopyPasteManager.getInstance().setContents(StringSelection(it))
                     detail.text = detail.text.replace("[Copiar cURL]", "[cURL copiado!]")
+                }
+                href == "copy:body" -> currentBody?.let {
+                    CopyPasteManager.getInstance().setContents(StringSelection(it))
+                    detail.text = detail.text.replace("[Copiar body]", "[body copiado!]")
                 }
                 href.isNotBlank() -> BrowserUtil.browse(href)
             }
@@ -293,6 +298,7 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
     private fun showRow(row: SentryRow?) {
         if (row == null) return
         currentCurl = null
+        currentBody = null
         detail.text = row.detailHtml
         frameModel.clear()
         val issueId = row.issueId ?: return
@@ -311,6 +317,7 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
                     val req = d.request
                     if (req != null) {
                         currentCurl = req.toCurl()
+                        currentBody = req.body
                         detail.text = row.detailHtml.replace("</body>", requestHtml(req) + "</body>")
                     }
                 }
@@ -319,7 +326,9 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
     }
 
     private fun requestHtml(req: SentryHttpRequest): String = buildString {
-        append("<hr/><b>HTTP Request</b> &nbsp; <a href='copy:curl'>[Copiar cURL]</a><br/>")
+        append("<hr/><b>HTTP Request</b> &nbsp; <a href='copy:curl'>[Copiar cURL]</a>")
+        if (req.body.isNotBlank()) append(" &nbsp; <a href='copy:body'>[Copiar body]</a>")
+        append("<br/>")
         append("<b>${escape(req.method)}</b> ${escape(req.url)}")
         if (req.headers.isNotEmpty()) {
             append("<br/><span style='color:gray'>headers: ${req.headers.size}</span>")
