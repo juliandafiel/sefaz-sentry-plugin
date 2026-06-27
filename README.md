@@ -29,6 +29,15 @@ Instalar na sua IDE: **Settings → Plugins → ⚙ → Install Plugin from Disk
 - **Token:** Personal Token do Sentry com escopos `org:read`, `project:read`, `event:read`.
 - Requer **VPN** para alcançar o servidor.
 
+## Troubleshooting
+
+**`PKIX path building failed` / `SSL handshake exception` ao sincronizar/baixar a SDK**
+Rede corporativa com interceptação SSL. O JDK do Gradle não confia na CA raiz da SEFAZ.
+- **Windows (recomendado):** já está no `gradle.properties` (`-Djavax.net.ssl.trustStoreType=Windows-ROOT`) — usa o truststore do Windows, onde a CA já está. Após puxar essa mudança, rode `gradlew --stop` (ou reinicie a IntelliJ) para o daemon pegar o novo JVM arg.
+- **Alternativa (qualquer SO):** exporte a CA corporativa (`.cer`) e importe no `cacerts` do JDK:
+  `keytool -importcert -alias sefaz-ca -file ca.cer -keystore "$JAVA_HOME/lib/security/cacerts" -storepass changeit`
+- Na IntelliJ, ajuda marcar *Settings → Tools → Server Certificates → Accept non-trusted certificates automatically*.
+
 ## Stack
 Kotlin · IntelliJ Platform Gradle Plugin 2.x · `java.net.http` + Gson · compilado em IC 2024.3
 (`untilBuild` aberto → roda em 2026.1+).
