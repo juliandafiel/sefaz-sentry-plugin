@@ -18,7 +18,7 @@
         <!-- AJUSTE: pasta da sua instalacao do IntelliJ (a que contem 'lib').      -->
         <!-- Use barra normal '/'. Ex.: C:/Program Files/JetBrains/IntelliJ IDEA 2026.1 -->
         <!-- Dica: na IntelliJ -> Help -> About / ou onde voce instalou.             -->
-        <intellij.home>C:/Program Files/JetBrains/IntelliJ IDEA 2026.1</intellij.home>
+        <intellij.home>C:/Program Files/JetBrains/IntelliJ IDEA 2026.1.3</intellij.home>
         <intellij.lib>${intellij.home}/lib</intellij.lib>
     </properties>
 
