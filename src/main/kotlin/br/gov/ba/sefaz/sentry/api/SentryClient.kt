@@ -29,6 +29,7 @@ data class SentryRow(
     val detailHtml: String,   // html do painel de detalhe
     val permalink: String,    // link "abrir no Sentry"
     val issueId: String?,     // != null => habilita stacktrace
+    val timestamp: String = "", // lastSeen (issues) ou timestamp (traces/logs), ISO cru
 )
 
 object SentryFormat {
@@ -142,6 +143,7 @@ class SentryClient(baseUrl: String, private val token: String) {
                 ),
                 permalink = "",
                 issueId = null,
+                timestamp = o.str("timestamp"),
             )
         }
 
@@ -166,6 +168,7 @@ class SentryClient(baseUrl: String, private val token: String) {
                 detailHtml = html("<h3>${SentryFormat.escape(msg)}</h3>severidade: ${SentryFormat.escape(sev)}<br/>quando: $ts"),
                 permalink = "",
                 issueId = null,
+                timestamp = o.str("timestamp"),
             )
         }
 
@@ -241,6 +244,7 @@ class SentryClient(baseUrl: String, private val token: String) {
             detailHtml = html(detail),
             permalink = str("permalink"),
             issueId = str("id"),
+            timestamp = str("lastSeen"),
         )
     }
 

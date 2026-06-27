@@ -1,6 +1,8 @@
 package br.gov.ba.sefaz.sentry.settings
 
 import br.gov.ba.sefaz.sentry.api.SentryClient
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.progress.ProgressManager
@@ -73,11 +75,25 @@ class SentryConfigurable : Configurable {
                 row("Vigiar ambientes:") { cell(notifyProd); cell(notifyHom); cell(notifyDev) }
                 row("Intervalo (segundos, min. 15):") { cell(notifyInterval).align(AlignX.FILL) }
             }
-            row { button("Testar conexao") { testConnection() } }
+            row {
+                button("Testar conexao") { testConnection() }
+                button("Testar notificacao") { testNotification() }
+            }
             row {
                 comment("Prod: <b>https://sentry.sefaz.ba.gov.br</b> &middot; Hom: <b>https://hsentry.sefaz.ba.gov.br</b>. Cada ambiente tem token proprio. Projetos: <b>efiscalizacao, web-api</b>. Token via Personal Token (org:read, project:read, event:read).")
             }
         }
+    }
+
+    private fun testNotification() {
+        NotificationGroupManager.getInstance()
+            .getNotificationGroup("SEFAZ Sentry")
+            .createNotification(
+                "SEFAZ Sentry",
+                "Notificacao de teste - se voce ve este balloon, as notificacoes funcionam.",
+                NotificationType.INFORMATION
+            )
+            .notify(null)
     }
 
     private fun testConnection() {

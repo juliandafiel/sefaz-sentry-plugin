@@ -17,14 +17,14 @@ import com.intellij.util.Alarm
 
 /**
  * Servico de fundo: faz polling dos ambientes marcados para notificacao e,
- * ao detectar issues novos, dispara um balloon no IntelliJ.
- * O Sentry nao faz push, entao a deteccao e por polling + diff de ids vistos.
+ * ao detectar erro novo (issue novo OU nova ocorrencia num issue existente),
+ * dispara um balloon no IntelliJ. O Sentry nao faz push -> deteccao por polling.
  */
 @Service(Service.Level.PROJECT)
 class SentryNotifier(private val project: Project) : Disposable {
 
     private val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
-    private val seenByEnv = HashMap<String, MutableSet<String>>()
+    private val lastSeenByEnv = HashMap<String, MutableMap<String, String>>()
     private val baselined = HashSet<String>()
 
     fun start() {
@@ -39,7 +39,9 @@ class SentryNotifier(private val project: Project) : Disposable {
         alarm.cancelAllRequests()
         val s = SentrySettings.getInstance()
         if (!s.notifyEnabled || s.notifyEnvs().isEmpty()) return
-        alarm.addRequest({ poll() }, s.notifySeconds.coerceAtLeast(15) * 1000)
+        // baseline inicial rapido; depois respeita o intervalo configurado
+        val delay = if (baselined.isEmpty()) 3000 else s.notifySeconds.coerceAtLeast(15) * 1000
+        alarm.addRequest({ poll() }, delay)
     }
 
     private fun poll() {
@@ -54,19 +56,24 @@ class SentryNotifier(private val project: Project) : Disposable {
     private fun checkEnv(s: SentrySettings, env: SentryEnv) {
         if (!s.isConfigured(env)) return
         val rows = SentryClient(s.url(env), s.token(env))
-            .listIssues(s.organization, s.projectList(), "is:unresolved", s.statsPeriod, 25, "new")
-        val ids = rows.mapNotNull { it.issueId }.toSet()
-        val known = seenByEnv.getOrPut(env.name) { HashSet() }
+            .listIssues(s.organization, s.projectList(), "is:unresolved", s.statsPeriod, 25, "date")
+        val known = lastSeenByEnv.getOrPut(env.name) { HashMap() }
+
         if (env.name !in baselined) {
-            // primeira passada: registra o estado atual sem notificar (evita enxurrada)
-            known.addAll(ids)
+            // primeira passada: registra estado atual sem notificar (evita enxurrada)
+            rows.forEach { it.issueId?.let { id -> known[id] = it.timestamp } }
             baselined.add(env.name)
             return
         }
-        val fresh = ids - known
-        if (fresh.isEmpty()) return
-        known.addAll(ids)
-        notify(env, rows.filter { it.issueId in fresh })
+
+        // novo = issue inedito OU lastSeen avancou (nova ocorrencia)
+        val fresh = rows.filter { r ->
+            val id = r.issueId ?: return@filter false
+            val prev = known[id]
+            prev == null || r.timestamp > prev
+        }
+        rows.forEach { it.issueId?.let { id -> known[id] = it.timestamp } }
+        if (fresh.isNotEmpty()) notify(env, fresh)
     }
 
     private fun notify(env: SentryEnv, rows: List<SentryRow>) {
