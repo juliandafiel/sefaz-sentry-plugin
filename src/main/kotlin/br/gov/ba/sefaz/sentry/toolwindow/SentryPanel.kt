@@ -224,6 +224,12 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
 
     private fun selectedEnv(): SentryEnv? = envCombo.selectedItem as? SentryEnv
 
+    private fun sortLabel(source: Int, sort: String): String = when (source) {
+        1 -> "Traces"
+        2 -> "Logs"
+        else -> "Issues/$sort"
+    }
+
     private fun reload() {
         val s = SentrySettings.getInstance()
         val env = selectedEnv()
@@ -256,13 +262,16 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
 
             override fun onSuccess() {
                 ApplicationManager.getApplication().invokeLater {
+                    rowModel.clear()
+                    rowList.clearSelection()
                     if (error != null) {
+                        rowList.emptyText.text = "Erro ao carregar (veja o detalhe)"
                         detail.text = html("<span style='color:#c0392b'>Erro:</span> ${escape(error!!)}")
                         return@invokeLater
                     }
-                    rowModel.clear()
+                    rowList.emptyText.text = "Nenhum resultado"
                     result.forEach { rowModel.addElement(it) }
-                    detail.text = html("${result.size} resultado(s) de <b>${escape(projects.joinToString(", "))}</b>.")
+                    detail.text = html("${result.size} resultado(s) de <b>${escape(projects.joinToString(", "))}</b> (${env.label} / ${sortLabel(source, sort)}).")
                 }
             }
         }.queue()
