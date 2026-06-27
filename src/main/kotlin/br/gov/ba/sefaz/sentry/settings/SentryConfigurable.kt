@@ -1,6 +1,7 @@
 package br.gov.ba.sefaz.sentry.settings
 
 import br.gov.ba.sefaz.sentry.api.SentryClient
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.ui.Messages
@@ -131,6 +132,8 @@ class SentryConfigurable : Configurable {
         settings.query = queryField.text
         settings.statsPeriod = periodField.text
         settings.refreshSeconds = refreshField.text.trim().toIntOrNull() ?: 30
+        ApplicationManager.getApplication().messageBus
+            .syncPublisher(SentrySettingsListener.TOPIC).settingsChanged()
     }
 
     override fun reset() {

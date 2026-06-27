@@ -7,6 +7,7 @@ import br.gov.ba.sefaz.sentry.navigation.SentryNavigator
 import br.gov.ba.sefaz.sentry.settings.SentryConfigurable
 import br.gov.ba.sefaz.sentry.settings.SentryEnv
 import br.gov.ba.sefaz.sentry.settings.SentrySettings
+import br.gov.ba.sefaz.sentry.settings.SentrySettingsListener
 import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
@@ -48,6 +49,7 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
 
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
     private val autoCheckbox = JBCheckBox("Auto")
+    private var updatingCombos = false
 
     private val rowModel = DefaultListModel<SentryRow>()
     private val rowList = JBList(rowModel)
@@ -101,6 +103,37 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
         else detail.text = html("Configure (habilite um ambiente) em <b>Settings &gt; Tools &gt; SEFAZ Sentry</b> e clique em Atualizar.")
 
         scheduleAuto()
+
+        ApplicationManager.getApplication().messageBus.connect(this)
+            .subscribe(SentrySettingsListener.TOPIC, object : SentrySettingsListener {
+                override fun settingsChanged() = repopulateCombos()
+            })
+    }
+
+    /** Repovoa as combos de ambiente/projeto quando as Settings mudam. */
+    private fun repopulateCombos() {
+        updatingCombos = true
+        try {
+            val s = SentrySettings.getInstance()
+            val prevEnv = envCombo.selectedItem as? SentryEnv
+            envCombo.removeAllItems()
+            s.enabledEnvs().forEach { envCombo.addItem(it) }
+            if (prevEnv != null && s.enabled(prevEnv)) envCombo.selectedItem = prevEnv
+
+            val prevProj = projectCombo.selectedItem as? String
+            projectCombo.removeAllItems()
+            projectCombo.addItem(ALL)
+            s.projectList().forEach { projectCombo.addItem(it) }
+            if (prevProj != null && (prevProj == ALL || s.projectList().contains(prevProj))) {
+                projectCombo.selectedItem = prevProj
+            }
+
+            autoCheckbox.isSelected = s.autoRefresh
+        } finally {
+            updatingCombos = false
+        }
+        scheduleAuto()
+        reload()
     }
 
     /** Polling: o Sentry nao faz push pra IDE, entao re-consultamos a cada N segundos. */
@@ -153,12 +186,13 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
         autoCheckbox.isSelected = s.autoRefresh
         autoCheckbox.toolTipText = "Atualizar automaticamente a cada N segundos (Settings)"
 
-        searchField.addActionListener { reload() }
-        envCombo.addActionListener { reload() }
-        sourceCombo.addActionListener { reload() }
-        sortCombo.addActionListener { reload() }
-        projectCombo.addActionListener { reload() }
+        searchField.addActionListener { if (!updatingCombos) reload() }
+        envCombo.addActionListener { if (!updatingCombos) reload() }
+        sourceCombo.addActionListener { if (!updatingCombos) reload() }
+        sortCombo.addActionListener { if (!updatingCombos) reload() }
+        projectCombo.addActionListener { if (!updatingCombos) reload() }
         autoCheckbox.addActionListener {
+            if (updatingCombos) return@addActionListener
             SentrySettings.getInstance().autoRefresh = autoCheckbox.isSelected
             scheduleAuto()
             if (autoCheckbox.isSelected) reload()
