@@ -1,0 +1,32 @@
+<idea-plugin>
+    <id>br.gov.ba.sefaz.sentry</id>
+    <name>SEFAZ Sentry Self-Hosted</name>
+    <vendor email="dti@sefaz.ba.gov.br" url="https://sentry.sefaz.ba.gov.br">SEFAZ-BA</vendor>
+
+    <description><![CDATA[
+        Integracao com o Sentry <b>self-hosted</b> da SEFAZ (sentry.sefaz.ba.gov.br).
+        Lista os issues de um projeto direto na IDE, mostra detalhes e abre no navegador.
+        URL do servidor, token e projeto sao configuraveis (Settings &gt; Tools &gt; SEFAZ Sentry).
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService
+            serviceImplementation="br.gov.ba.sefaz.sentry.settings.SentrySettings"/>
+
+        <applicationConfigurable
+            parentId="tools"
+            id="br.gov.ba.sefaz.sentry.settings.SentryConfigurable"
+            displayName="SEFAZ Sentry"
+            instance="br.gov.ba.sefaz.sentry.settings.SentryConfigurable"/>
+
+        <toolWindow
+            id="SEFAZ Sentry"
+            anchor="bottom"
+            icon="AllIcons.Toolwindows.ToolWindowMessages"
+            factoryClass="br.gov.ba.sefaz.sentry.toolwindow.SentryToolWindowFactory"/>
+
+        <notificationGroup id="SEFAZ Sentry" displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>
