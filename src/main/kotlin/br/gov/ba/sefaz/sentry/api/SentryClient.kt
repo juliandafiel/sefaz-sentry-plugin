@@ -23,6 +23,30 @@ data class SentryFrame(
     val inApp: Boolean,
 )
 
+data class SentryHttpRequest(
+    val method: String,
+    val url: String,
+    val headers: List<Pair<String, String>>,
+    val body: String,
+) {
+    fun toCurl(): String {
+        val sb = StringBuilder("curl -X ").append(method).append(" \\\n")
+        headers.forEach { (k, v) ->
+            sb.append("  -H '").append(k).append(": ").append(v.replace("'", "'\\''")).append("' \\\n")
+        }
+        if (body.isNotBlank()) {
+            sb.append("  --data '").append(body.replace("'", "'\\''")).append("' \\\n")
+        }
+        sb.append("  '").append(url).append("'")
+        return sb.toString()
+    }
+}
+
+data class SentryEventDetail(
+    val frames: List<SentryFrame>,
+    val request: SentryHttpRequest?,
+)
+
 /** Linha generica exibida na lista (issue, trace ou log). */
 data class SentryRow(
     val label: String,        // texto na lista (ja com data formatada)
@@ -172,20 +196,43 @@ class SentryClient(baseUrl: String, private val token: String) {
             )
         }
 
-    /** Frames do stacktrace do ultimo evento do issue (ordenados: ponto do erro primeiro). */
-    fun latestEventFrames(issueId: String): List<SentryFrame> {
+    /** Stacktrace + HTTP request do ultimo evento do issue. */
+    fun latestEventDetail(issueId: String): SentryEventDetail {
         val event = JsonParser.parseString(get("/issues/$issueId/events/latest/")).asJsonObject
-        val out = mutableListOf<SentryFrame>()
+        val frames = mutableListOf<SentryFrame>()
         event.arr("entries")?.forEach { e ->
             val eo = e.asJsonObject
             if (eo.str("type") == "exception") {
-                eo.obj("data")?.arr("values")?.forEach { v -> collectFrames(v.asJsonObject, out) }
+                eo.obj("data")?.arr("values")?.forEach { v -> collectFrames(v.asJsonObject, frames) }
             }
         }
-        if (out.isEmpty()) {
-            event.obj("exception")?.arr("values")?.forEach { v -> collectFrames(v.asJsonObject, out) }
+        if (frames.isEmpty()) {
+            event.obj("exception")?.arr("values")?.forEach { v -> collectFrames(v.asJsonObject, frames) }
         }
-        return out
+        return SentryEventDetail(frames, parseRequest(event))
+    }
+
+    private fun parseRequest(event: JsonObject): SentryHttpRequest? {
+        val data = event.arr("entries")
+            ?.map { it.asJsonObject }
+            ?.firstOrNull { it.str("type") == "request" }
+            ?.obj("data")
+            ?: event.obj("request")
+            ?: return null
+        val url = data.str("url")
+        if (url.isBlank()) return null
+        val method = data.str("method").ifBlank { "GET" }
+        val headers = data.arr("headers")?.mapNotNull { h ->
+            val a = h.takeIf { it.isJsonArray }?.asJsonArray ?: return@mapNotNull null
+            if (a.size() >= 2) a[0].asString to a[1].asString else null
+        } ?: emptyList()
+        val bodyEl = data.get("data").orNull()
+        val body = when {
+            bodyEl == null -> ""
+            bodyEl.isJsonPrimitive -> bodyEl.asString
+            else -> bodyEl.toString()
+        }
+        return SentryHttpRequest(method, url, headers, body)
     }
 
     private fun events(

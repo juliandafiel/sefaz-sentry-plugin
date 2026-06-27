@@ -1,7 +1,9 @@
 package br.gov.ba.sefaz.sentry.toolwindow
 
 import br.gov.ba.sefaz.sentry.api.SentryClient
+import br.gov.ba.sefaz.sentry.api.SentryEventDetail
 import br.gov.ba.sefaz.sentry.api.SentryFrame
+import br.gov.ba.sefaz.sentry.api.SentryHttpRequest
 import br.gov.ba.sefaz.sentry.api.SentryRow
 import br.gov.ba.sefaz.sentry.navigation.SentryNavigator
 import br.gov.ba.sefaz.sentry.settings.SentryConfigurable
@@ -11,6 +13,7 @@ import br.gov.ba.sefaz.sentry.settings.SentrySettingsListener
 import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.AnAction
@@ -32,6 +35,7 @@ import com.intellij.util.ui.JBUI
 import java.awt.Color
 import java.awt.Component
 import java.awt.FlowLayout
+import java.awt.datatransfer.StringSelection
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.DefaultListCellRenderer
@@ -50,6 +54,7 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
     private val autoCheckbox = JBCheckBox("Auto")
     private var updatingCombos = false
+    private var currentCurl: String? = null
 
     private val rowModel = DefaultListModel<SentryRow>()
     private val rowList = JBList(rowModel)
@@ -76,7 +81,15 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
 
         detail.isEditable = false
         detail.addHyperlinkListener { e ->
-            if (e.eventType == HyperlinkEvent.EventType.ACTIVATED) e.url?.let { BrowserUtil.browse(it) }
+            if (e.eventType != HyperlinkEvent.EventType.ACTIVATED) return@addHyperlinkListener
+            val href = e.description.orEmpty()
+            when {
+                href == "copy:curl" -> currentCurl?.let {
+                    CopyPasteManager.getInstance().setContents(StringSelection(it))
+                    detail.text = detail.text.replace("[Copiar cURL]", "[cURL copiado!]")
+                }
+                href.isNotBlank() -> BrowserUtil.browse(href)
+            }
         }
 
         frameList.selectionMode = ListSelectionModel.SINGLE_SELECTION
@@ -279,23 +292,41 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
 
     private fun showRow(row: SentryRow?) {
         if (row == null) return
+        currentCurl = null
         detail.text = row.detailHtml
         frameModel.clear()
         val issueId = row.issueId ?: return
         val s = SentrySettings.getInstance()
         val env = selectedEnv() ?: return
-        object : Task.Backgroundable(project, "Carregando stacktrace...", true) {
-            private var frames: List<SentryFrame> = emptyList()
+        object : Task.Backgroundable(project, "Carregando evento...", true) {
+            private var data: SentryEventDetail? = null
             override fun run(indicator: ProgressIndicator) {
-                runCatching { frames = SentryClient(s.url(env), s.token(env)).latestEventFrames(issueId) }
+                runCatching { data = SentryClient(s.url(env), s.token(env)).latestEventDetail(issueId) }
             }
             override fun onSuccess() {
                 ApplicationManager.getApplication().invokeLater {
+                    val d = data ?: return@invokeLater
                     frameModel.clear()
-                    frames.forEach { frameModel.addElement(it) }
+                    d.frames.forEach { frameModel.addElement(it) }
+                    val req = d.request
+                    if (req != null) {
+                        currentCurl = req.toCurl()
+                        detail.text = row.detailHtml.replace("</body>", requestHtml(req) + "</body>")
+                    }
                 }
             }
         }.queue()
+    }
+
+    private fun requestHtml(req: SentryHttpRequest): String = buildString {
+        append("<hr/><b>HTTP Request</b> &nbsp; <a href='copy:curl'>[Copiar cURL]</a><br/>")
+        append("<b>${escape(req.method)}</b> ${escape(req.url)}")
+        if (req.headers.isNotEmpty()) {
+            append("<br/><span style='color:gray'>headers: ${req.headers.size}</span>")
+        }
+        if (req.body.isNotBlank()) {
+            append("<pre style='white-space:pre-wrap; font-size:10px'>${escape(req.body)}</pre>")
+        }
     }
 
     private class RowRenderer : DefaultListCellRenderer() {
