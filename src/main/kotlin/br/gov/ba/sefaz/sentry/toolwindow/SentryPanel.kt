@@ -13,7 +13,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.ide.BrowserUtil
+import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
@@ -29,6 +29,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.DefaultListCellRenderer
 import javax.swing.DefaultListModel
+import javax.swing.JComponent
 import javax.swing.JEditorPane
 import javax.swing.JList
 import javax.swing.ListSelectionModel
@@ -82,7 +83,7 @@ class SentryPanel(private val project: Project) : SimpleToolWindowPanel(true, tr
         else detail.text = html("Configure em <b>Settings &gt; Tools &gt; SEFAZ Sentry</b> e clique em Atualizar.")
     }
 
-    private fun createToolbar(): Component {
+    private fun createToolbar(): JComponent {
         val group = DefaultActionGroup()
         group.add(object : AnAction("Atualizar", "Recarregar issues", AllIcons.Actions.Refresh) {
             override fun actionPerformed(e: AnActionEvent) = refresh()
