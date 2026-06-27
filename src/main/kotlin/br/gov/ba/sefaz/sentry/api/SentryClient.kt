@@ -32,8 +32,8 @@ data class SentryHttpRequest(
     fun toCurl(): String {
         val sb = StringBuilder("curl -X ").append(method).append(" \\\n")
         headers.forEach { (k, v) ->
-            // Sentry mascara o Authorization como [Filtered]; usa a variavel do Postman
-            val value = if (k.equals("Authorization", ignoreCase = true)) "{{token}}" else v
+            // Sentry mascara o Authorization como [Filtered]; usa Bearer + variavel do Postman
+            val value = if (k.equals("Authorization", ignoreCase = true)) "Bearer {{token}}" else v
             sb.append("  -H '").append(k).append(": ").append(value.replace("'", "'\\''")).append("' \\\n")
         }
         if (body.isNotBlank()) {
