@@ -14,6 +14,7 @@ Plugin próprio para integrar a IDE com o **Sentry self-hosted** da SEFAZ
 - **Tool window "SEFAZ Sentry"** (rodapé) com toolbar: seletor de **Ambiente**, **Fonte** (Issues/Traces/Logs), **Projeto** (Todos ou um), **Ordenação** (Recentes/Frequência/Novos/Usuários) e **Busca** por palavra (ex.: `NullPointer`).
 - **Datas** em `dd/MM/yyyy HH:mm:ss` (fuso local).
 - **Auto-atualização** (checkbox **Auto** no toolbar): re-consulta a cada N segundos (configurável). O Sentry não faz push pra IDE, então é *polling* — fica quase-tempo-real.
+- **Notificações de erro novo** (Settings → grupo *Notificações*): um serviço de fundo vigia os ambientes que você marcar (Produção/Homologação/Desenvolvimento) e, ao surgir um issue novo, mostra um **balloon** no IntelliJ (com ação "Abrir no Sentry"). Intervalo configurável; roda mesmo com a tool window fechada.
 - **Navegação stacktrace → código:** ao selecionar um issue mostra os frames; **duplo-clique num frame abre o arquivo na linha**.
 
 > **Traces** e **Logs** usam a API Discover/events do Sentry (best-effort; nomes de campo/dataset podem variar por versão).

@@ -30,6 +30,11 @@ class SentrySettings : PersistentStateComponent<SentrySettings.State> {
         var limit: Int = 25
         var autoRefresh: Boolean = false
         var refreshSeconds: Int = 30
+        var notifyEnabled: Boolean = false
+        var notifySeconds: Int = 60
+        var notifyProd: Boolean = false
+        var notifyHom: Boolean = false
+        var notifyDev: Boolean = false
 
         var prodEnabled: Boolean = true
         var prodUrl: String = "https://sentry.sefaz.ba.gov.br"
@@ -64,6 +69,12 @@ class SentrySettings : PersistentStateComponent<SentrySettings.State> {
     var refreshSeconds: Int
         get() = state.refreshSeconds
         set(v) { state.refreshSeconds = v.coerceIn(5, 3600) }
+    var notifyEnabled: Boolean
+        get() = state.notifyEnabled
+        set(v) { state.notifyEnabled = v }
+    var notifySeconds: Int
+        get() = state.notifySeconds
+        set(v) { state.notifySeconds = v.coerceIn(15, 3600) }
     var project: String
         get() = state.project
         set(v) { state.project = v.trim() }
@@ -104,6 +115,21 @@ class SentrySettings : PersistentStateComponent<SentrySettings.State> {
         PasswordSafe.instance.setPassword(tokenAttributes(env), v.ifBlank { null })
 
     fun enabledEnvs(): List<SentryEnv> = SentryEnv.values().filter { enabled(it) }
+
+    fun isNotify(env: SentryEnv): Boolean = when (env) {
+        SentryEnv.PROD -> state.notifyProd
+        SentryEnv.HOM -> state.notifyHom
+        SentryEnv.DEV -> state.notifyDev
+    }
+
+    fun setNotify(env: SentryEnv, v: Boolean) = when (env) {
+        SentryEnv.PROD -> state.notifyProd = v
+        SentryEnv.HOM -> state.notifyHom = v
+        SentryEnv.DEV -> state.notifyDev = v
+    }
+
+    /** Ambientes que devem ser vigiados para notificacao (habilitados E marcados). */
+    fun notifyEnvs(): List<SentryEnv> = enabledEnvs().filter { isNotify(it) }
 
     fun isConfigured(env: SentryEnv): Boolean =
         enabled(env) && url(env).isNotBlank() && organization.isNotBlank() &&

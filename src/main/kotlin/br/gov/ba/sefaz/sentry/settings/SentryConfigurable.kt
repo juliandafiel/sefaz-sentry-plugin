@@ -35,6 +35,12 @@ class SentryConfigurable : Configurable {
     private val periodField = JBTextField()
     private val refreshField = JBTextField()
 
+    private val notifyBox = JBCheckBox("Habilitar notificacoes de erro novo")
+    private val notifyProd = JBCheckBox("Producao")
+    private val notifyHom = JBCheckBox("Homologacao")
+    private val notifyDev = JBCheckBox("Desenvolvimento")
+    private val notifyInterval = JBTextField()
+
     override fun getDisplayName(): String = "SEFAZ Sentry"
 
     override fun createComponent(): JComponent {
@@ -61,6 +67,11 @@ class SentryConfigurable : Configurable {
                 row("Query:") { cell(queryField).align(AlignX.FILL) }
                 row("Periodo (ex.: 14d, 24h, 90d):") { cell(periodField).align(AlignX.FILL) }
                 row("Auto-atualizar (segundos, min. 5):") { cell(refreshField).align(AlignX.FILL) }
+            }
+            group("Notificacoes (erro novo)") {
+                row { cell(notifyBox) }
+                row("Vigiar ambientes:") { cell(notifyProd); cell(notifyHom); cell(notifyDev) }
+                row("Intervalo (segundos, min. 15):") { cell(notifyInterval).align(AlignX.FILL) }
             }
             row { button("Testar conexao") { testConnection() } }
             row {
@@ -115,7 +126,12 @@ class SentryConfigurable : Configurable {
             projectField.text != settings.project ||
             queryField.text != settings.query ||
             periodField.text != settings.statsPeriod ||
-            refreshField.text != settings.refreshSeconds.toString()
+            refreshField.text != settings.refreshSeconds.toString() ||
+            notifyBox.isSelected != settings.notifyEnabled ||
+            notifyProd.isSelected != settings.isNotify(SentryEnv.PROD) ||
+            notifyHom.isSelected != settings.isNotify(SentryEnv.HOM) ||
+            notifyDev.isSelected != settings.isNotify(SentryEnv.DEV) ||
+            notifyInterval.text != settings.notifySeconds.toString()
 
     override fun apply() {
         settings.setEnabled(SentryEnv.PROD, prodEnabled.isSelected)
@@ -132,6 +148,11 @@ class SentryConfigurable : Configurable {
         settings.query = queryField.text
         settings.statsPeriod = periodField.text
         settings.refreshSeconds = refreshField.text.trim().toIntOrNull() ?: 30
+        settings.notifyEnabled = notifyBox.isSelected
+        settings.setNotify(SentryEnv.PROD, notifyProd.isSelected)
+        settings.setNotify(SentryEnv.HOM, notifyHom.isSelected)
+        settings.setNotify(SentryEnv.DEV, notifyDev.isSelected)
+        settings.notifySeconds = notifyInterval.text.trim().toIntOrNull() ?: 60
         ApplicationManager.getApplication().messageBus
             .syncPublisher(SentrySettingsListener.TOPIC).settingsChanged()
     }
@@ -151,5 +172,10 @@ class SentryConfigurable : Configurable {
         queryField.text = settings.query
         periodField.text = settings.statsPeriod
         refreshField.text = settings.refreshSeconds.toString()
+        notifyBox.isSelected = settings.notifyEnabled
+        notifyProd.isSelected = settings.isNotify(SentryEnv.PROD)
+        notifyHom.isSelected = settings.isNotify(SentryEnv.HOM)
+        notifyDev.isSelected = settings.isNotify(SentryEnv.DEV)
+        notifyInterval.text = settings.notifySeconds.toString()
     }
 }

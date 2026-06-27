@@ -28,5 +28,7 @@
             factoryClass="br.gov.ba.sefaz.sentry.toolwindow.SentryToolWindowFactory"/>
 
         <notificationGroup id="SEFAZ Sentry" displayType="BALLOON"/>
+
+        <postStartupActivity implementation="br.gov.ba.sefaz.sentry.notify.SentryStartup"/>
     </extensions>
 </idea-plugin>
