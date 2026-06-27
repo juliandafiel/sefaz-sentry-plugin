@@ -9,9 +9,14 @@ Plugin próprio para integrar a IDE com o **Sentry self-hosted** da SEFAZ
 > não há `runIde`/sandbox: você gera o `.zip` e instala manualmente.
 
 ## O que faz
-- **Configuração** (Settings → Tools → SEFAZ Sentry): URL do servidor, token (no PasswordSafe), organização e projeto + botão **Testar conexão**.
-- **Tool window "SEFAZ Sentry"** (rodapé): lista os issues (`is:unresolved`), com detalhe e link pro Sentry.
+- **Múltiplos ambientes** (Settings → Tools → SEFAZ Sentry): Produção (`sentry...`), Homologação (`hsentry...`) e Desenvolvimento (`dsentry...`) — cada um com URL e token próprios, habilitáveis individualmente. Botão **Testar conexão** testa todos os habilitados.
+- **Múltiplos projetos** num mesmo ambiente (slugs separados por vírgula, ex.: `efiscalizacao, web-api`).
+- **Tool window "SEFAZ Sentry"** (rodapé) com toolbar: seletor de **Ambiente**, **Fonte** (Issues/Traces/Logs), **Projeto** (Todos ou um), **Ordenação** (Recentes/Frequência/Novos/Usuários) e **Busca** por palavra (ex.: `NullPointer`).
+- **Datas** em `dd/MM/yyyy HH:mm:ss` (fuso local).
+- **Auto-atualização** (checkbox **Auto** no toolbar): re-consulta a cada N segundos (configurável). O Sentry não faz push pra IDE, então é *polling* — fica quase-tempo-real.
 - **Navegação stacktrace → código:** ao selecionar um issue mostra os frames; **duplo-clique num frame abre o arquivo na linha**.
+
+> **Traces** e **Logs** usam a API Discover/events do Sentry (best-effort; nomes de campo/dataset podem variar por versão).
 
 ## Pré-requisitos
 - **JDK 21** (ex.: `C:/Program Files/Java/jdk-21`).
