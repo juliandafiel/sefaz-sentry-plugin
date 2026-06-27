@@ -86,14 +86,15 @@ class SentryConfigurable : Configurable {
     }
 
     private fun testNotification() {
+        val project = com.intellij.openapi.project.ProjectManager.getInstance().openProjects.firstOrNull()
         NotificationGroupManager.getInstance()
             .getNotificationGroup("SEFAZ Sentry")
             .createNotification(
                 "SEFAZ Sentry",
                 "Notificacao de teste - se voce ve este balloon, as notificacoes funcionam.",
-                NotificationType.INFORMATION
+                NotificationType.WARNING
             )
-            .notify(null)
+            .notify(project)
     }
 
     private fun testConnection() {

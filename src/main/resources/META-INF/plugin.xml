@@ -27,7 +27,7 @@
             icon="AllIcons.Toolwindows.ToolWindowMessages"
             factoryClass="br.gov.ba.sefaz.sentry.toolwindow.SentryToolWindowFactory"/>
 
-        <notificationGroup id="SEFAZ Sentry" displayType="BALLOON"/>
+        <notificationGroup id="SEFAZ Sentry" displayType="STICKY_BALLOON"/>
 
         <postStartupActivity implementation="br.gov.ba.sefaz.sentry.notify.SentryStartup"/>
     </extensions>
