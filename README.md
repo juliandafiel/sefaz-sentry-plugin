@@ -19,14 +19,13 @@ Plugin próprio para integrar a IDE com o **Sentry self-hosted** da SEFAZ
 - **IntelliJ IDEA instalado** (os JARs da plataforma vêm dele).
 
 ## Build (Maven)
-1. No `pom.xml`, ajuste a propriedade **`intellij.home`** para a pasta da sua instalação do IntelliJ (a que contém `lib`). Ex.:
-   ```xml
-   <intellij.home>C:/Program Files/JetBrains/IntelliJ IDEA 2026.1</intellij.home>
+1. Confira a propriedade **`intellij.home`** no `pom.xml` (já vem `C:/Program Files/JetBrains/IntelliJ IDEA 2026.1.3`). Ajuste se sua instalação for outra.
+2. Empacote (o `MAVEN_OPTS` faz o Maven baixar `kotlin-maven-plugin`/`gson`/`assembly` confiando na CA corporativa):
+   ```bat
+   set MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=Windows-ROOT
+   mvn clean package
    ```
-2. Empacote:
-   ```bash
-   mvn -o clean package          # gera target/sefaz-sentry-plugin-0.1.0.zip
-   ```
+   Gera **`target/sefaz-sentry-plugin-0.1.0.zip`**.
 3. Instale na IDE: **Settings → Plugins → ⚙ → Install Plugin from Disk…** → selecione o `.zip` de `target/`.
 
 ## Configurar (Settings → Tools → SEFAZ Sentry)
@@ -38,11 +37,8 @@ Plugin próprio para integrar a IDE com o **Sentry self-hosted** da SEFAZ
 
 ## Troubleshooting
 **Erro de compilação "unresolved reference" / classe da plataforma não encontrada**
-Falta algum JAR do IntelliJ no classpath. Liste os JARs da sua versão:
-```bat
-dir /b "C:\Program Files\JetBrains\IntelliJ IDEA 2026.1\lib\*.jar"
-```
-e adicione os que faltam como `<dependency>` `scope=system` no `pom.xml` (seguindo o padrão dos que já estão lá).
+Falta algum JAR do IntelliJ no classpath. Rode `listar-jars-intellij.bat` e mande a saída,
+ou adicione o jar faltante como `<dependency>` `scope=system` no `pom.xml` (seguindo o padrão dos que já estão lá).
 
 ## Stack
 Kotlin · **Maven** (`kotlin-maven-plugin` + `maven-assembly-plugin`) · JARs do IntelliJ via `scope=system` · `java.net.http` + Gson · JDK 21.
