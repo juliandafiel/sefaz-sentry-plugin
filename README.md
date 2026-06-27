@@ -4,40 +4,45 @@ Plugin próprio para integrar a IDE com o **Sentry self-hosted** da SEFAZ
 (`https://sentry.sefaz.ba.gov.br`) — algo que os plugins do Marketplace não suportam
 (uns só falam com `sentry.io`, outros estão abandonados/incompatíveis).
 
+> **Build com Maven**, referenciando os JARs do **IntelliJ instalado localmente**
+> (não baixa a SDK → não esbarra na interceptação SSL corporativa). Em troca,
+> não há `runIde`/sandbox: você gera o `.zip` e instala manualmente.
+
 ## O que faz
-- **Configuração** (Settings → Tools → SEFAZ Sentry): URL do servidor, token (guardado no PasswordSafe), organização e projeto + botão **Testar conexão**.
-- **Tool window "SEFAZ Sentry"** (rodapé): lista os issues (`is:unresolved` por padrão), com detalhe e link pro Sentry (duplo-clique no issue abre no navegador).
-- **Navegação stacktrace → código:** ao selecionar um issue, mostra os frames do último evento; **duplo-clique num frame abre o arquivo na linha** (acha o arquivo por nome via `FilenameIndex`, desambiguando pelo pacote). Frames `in-app` em destaque, libs em cinza.
+- **Configuração** (Settings → Tools → SEFAZ Sentry): URL do servidor, token (no PasswordSafe), organização e projeto + botão **Testar conexão**.
+- **Tool window "SEFAZ Sentry"** (rodapé): lista os issues (`is:unresolved`), com detalhe e link pro Sentry.
+- **Navegação stacktrace → código:** ao selecionar um issue mostra os frames; **duplo-clique num frame abre o arquivo na linha**.
 
-## Fase 3 (futuro)
-- Múltiplas conexões/projetos, cache, filtros de query na própria tool window, marcação inline nas linhas.
+## Pré-requisitos
+- **JDK 21** (ex.: `C:/Program Files/Java/jdk-21`).
+- **Maven** (pode usar o offline da SEFAZ).
+- **IntelliJ IDEA instalado** (os JARs da plataforma vêm dele).
 
-## Build / instalação
-Pré-requisitos: JDK 17+ (a IDE 2024.3+ usa JDK 21), internet para baixar a SDK.
-
-```bash
-./gradlew buildPlugin     # gera build/distributions/sefaz-sentry-plugin-0.1.0.zip
-./gradlew runIde          # abre uma IDE de teste com o plugin instalado
-```
-
-Instalar na sua IDE: **Settings → Plugins → ⚙ → Install Plugin from Disk…** → selecione o `.zip` de `build/distributions`.
+## Build (Maven)
+1. No `pom.xml`, ajuste a propriedade **`intellij.home`** para a pasta da sua instalação do IntelliJ (a que contém `lib`). Ex.:
+   ```xml
+   <intellij.home>C:/Program Files/JetBrains/IntelliJ IDEA 2026.1</intellij.home>
+   ```
+2. Empacote:
+   ```bash
+   mvn -o clean package          # gera target/sefaz-sentry-plugin-0.1.0.zip
+   ```
+3. Instale na IDE: **Settings → Plugins → ⚙ → Install Plugin from Disk…** → selecione o `.zip` de `target/`.
 
 ## Configurar (Settings → Tools → SEFAZ Sentry)
 - **URL:** `https://sentry.sefaz.ba.gov.br`
 - **Organização:** `sefaz`
 - **Projeto:** `efiscalizacao` (182) ou `web-api` (127)
-- **Token:** Personal Token do Sentry com escopos `org:read`, `project:read`, `event:read`.
+- **Token:** Personal Token do Sentry (`org:read`, `project:read`, `event:read`).
 - Requer **VPN** para alcançar o servidor.
 
 ## Troubleshooting
-
-**`PKIX path building failed` / `SSL handshake exception` ao sincronizar/baixar a SDK**
-Rede corporativa com interceptação SSL. O JDK do Gradle não confia na CA raiz da SEFAZ.
-- **Windows (recomendado):** já está no `gradle.properties` (`-Djavax.net.ssl.trustStoreType=Windows-ROOT`) — usa o truststore do Windows, onde a CA já está. Após puxar essa mudança, rode `gradlew --stop` (ou reinicie a IntelliJ) para o daemon pegar o novo JVM arg.
-- **Alternativa (qualquer SO):** exporte a CA corporativa (`.cer`) e importe no `cacerts` do JDK:
-  `keytool -importcert -alias sefaz-ca -file ca.cer -keystore "$JAVA_HOME/lib/security/cacerts" -storepass changeit`
-- Na IntelliJ, ajuda marcar *Settings → Tools → Server Certificates → Accept non-trusted certificates automatically*.
+**Erro de compilação "unresolved reference" / classe da plataforma não encontrada**
+Falta algum JAR do IntelliJ no classpath. Liste os JARs da sua versão:
+```bat
+dir /b "C:\Program Files\JetBrains\IntelliJ IDEA 2026.1\lib\*.jar"
+```
+e adicione os que faltam como `<dependency>` `scope=system` no `pom.xml` (seguindo o padrão dos que já estão lá).
 
 ## Stack
-Kotlin · IntelliJ Platform Gradle Plugin 2.x · `java.net.http` + Gson · compilado em IC 2024.3
-(`untilBuild` aberto → roda em 2026.1+).
+Kotlin · **Maven** (`kotlin-maven-plugin` + `maven-assembly-plugin`) · JARs do IntelliJ via `scope=system` · `java.net.http` + Gson · JDK 21.

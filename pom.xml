@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>br.gov.ba.sefaz.sentry</groupId>
+    <artifactId>sefaz-sentry-plugin</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>21</maven.compiler.release>
+        <kotlin.version>2.1.0</kotlin.version>
+
+        <!-- ===================================================================== -->
+        <!-- AJUSTE: pasta da sua instalacao do IntelliJ (a que contem 'lib').      -->
+        <!-- Use barra normal '/'. Ex.: C:/Program Files/JetBrains/IntelliJ IDEA 2026.1 -->
+        <!-- Dica: na IntelliJ -> Help -> About / ou onde voce instalou.             -->
+        <intellij.home>C:/Program Files/JetBrains/IntelliJ IDEA 2026.1</intellij.home>
+        <intellij.lib>${intellij.home}/lib</intellij.lib>
+    </properties>
+
+    <dependencies>
+        <!-- Kotlin stdlib (empacotado no plugin) -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+
+        <!-- JSON (empacotado no plugin) -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+
+        <!-- ===================================================================== -->
+        <!-- IntelliJ Platform: JARs locais (scope system -> NAO empacotados).      -->
+        <!-- Se faltar alguma classe ao compilar, rode no Windows:                  -->
+        <!--   dir /b "%INTELLIJ_LIB%\*.jar"                                         -->
+        <!-- e me mande a lista que eu acerto os <systemPath> exatos da sua versao.  -->
+        <!-- ===================================================================== -->
+        <dependency>
+            <groupId>com.jetbrains.intellij</groupId><artifactId>app</artifactId><version>local</version>
+            <scope>system</scope><systemPath>${intellij.lib}/app.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij</groupId><artifactId>app-client</artifactId><version>local</version>
+            <scope>system</scope><systemPath>${intellij.lib}/app-client.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij</groupId><artifactId>lib</artifactId><version>local</version>
+            <scope>system</scope><systemPath>${intellij.lib}/lib.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij</groupId><artifactId>lib-client</artifactId><version>local</version>
+            <scope>system</scope><systemPath>${intellij.lib}/lib-client.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij</groupId><artifactId>util-8</artifactId><version>local</version>
+            <scope>system</scope><systemPath>${intellij.lib}/util-8.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij</groupId><artifactId>util</artifactId><version>local</version>
+            <scope>system</scope><systemPath>${intellij.lib}/util.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij</groupId><artifactId>util_rt</artifactId><version>local</version>
+            <scope>system</scope><systemPath>${intellij.lib}/util_rt.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij</groupId><artifactId>product</artifactId><version>local</version>
+            <scope>system</scope><systemPath>${intellij.lib}/product.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij</groupId><artifactId>platform-loader</artifactId><version>local</version>
+            <scope>system</scope><systemPath>${intellij.lib}/platform-loader.jar</systemPath>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}-${project.version}</finalName>
+        <sourceDirectory>src/main/kotlin</sourceDirectory>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+
+        <plugins>
+            <!-- Compila Kotlin -->
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.version}</version>
+                <configuration>
+                    <jvmTarget>21</jvmTarget>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <phase>compile</phase>
+                        <goals><goal>compile</goal></goals>
+                        <configuration>
+                            <sourceDirs>
+                                <sourceDir>src/main/kotlin</sourceDir>
+                            </sourceDirs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Empacota o .zip instalavel do plugin (estrutura lib/) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <descriptors>
+                        <descriptor>src/assembly/plugin-zip.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>plugin-zip</id>
+                        <phase>package</phase>
+                        <goals><goal>single</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
